@@ -10,5 +10,5 @@ Personal Claude Code plugin for multi-session development. Builds on `superpower
 
 Per-project state lives in `<main checkout>/.convoy/` (self-git-ignored), created by `skills/coordination/scripts/convoy-workspace [--init]`; templates in `skills/coordination/templates/`.
 
-Install: `claude plugin marketplace add ~/projects/convoy && claude plugin install convoy@convoy`.
-After editing a skill: bump `version` in both manifests, then `claude plugin marketplace update convoy`.
+Install: `claude plugin marketplace add nguyenvinhloc1997/convoy && claude plugin install convoy@convoy`.
+After editing a skill: bump `version` in both manifests, commit, `git push`, then `claude plugin marketplace update convoy && claude plugin update convoy@convoy` and restart sessions.
