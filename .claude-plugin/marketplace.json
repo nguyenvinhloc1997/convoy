@@ -1,0 +1,12 @@
+{
+  "name": "convoy",
+  "owner": { "name": "leo" },
+  "plugins": [
+    {
+      "name": "convoy",
+      "source": "./",
+      "description": "Lead + lanes multi-session development, destination setting, and the branch execution loop.",
+      "version": "0.1.0"
+    }
+  ]
+}
