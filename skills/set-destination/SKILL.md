@@ -47,49 +47,13 @@ The destination is **reached** only when its done query returns nothing.
    - order each lane: unblockers of other lanes first, then highest risk.
 5. **Show the lane table** (lane → session name → owned paths → ordered issues → cross-lane
    dependencies) plus the human decision items. Iterate until approved.
-6. **Write** `destination.md` and `manifest.md` from the templates below.
+6. **Write** `destination.md` and `manifest.md`: run `../coordination/scripts/convoy-workspace --init`
+   (relative to this skill's base directory) to create `.convoy/` with the templates, then fill them.
 7. **Draft one kickoff message per lane** and send after the human confirms. A kickoff contains:
    lane name, owned paths, ordered issues, pre-declared CRs, the lead's session name, the
    manifest path, and: "Load `convoy:coordination` and `convoy:branch-loop`."
 
 `update` runs steps 3–7 on the delta only, then sends each affected lane its changes.
-
-## Templates
-
-`destination.md`:
-```markdown
-# Destination: <name>
-Set: <date> · Lead: <session name>
-## Goal
-<one sentence>
-## Done when
-<condition> — query: `<command that lists remaining work>`
-## Out of scope
-- ...
-## New-issue rule
-<milestone, labels, assignee for issues the lanes file>
-## Human decisions pending
-- [ ] #N — <question>
-```
-
-`manifest.md`:
-```markdown
-# Manifest — <destination name>
-Lead: <session name> · Base branch: <branch>
-## Lanes
-| Lane | Session | Owned paths | Issue order | State |
-## Contracts
-| Contract | Owner lane | Consumers | Last change |
-## Open CRs
-| From → To | Path | Ask | State |
-## Shared resources
-| Resource | Owner | Since |
-## Blockers
-## PR queue (merge order)
-| # | PR | Lane | Checkpoint | Human |
-## Log
-- <date> <event>
-```
 
 ## Common mistakes
 

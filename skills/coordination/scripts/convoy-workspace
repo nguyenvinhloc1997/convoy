@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Resolve and ensure the convoy runtime folder; print its absolute path.
+#
+# Lives in the MAIN checkout (resolved via the common git dir), so every lane
+# worktree shares one .convoy/. A self-ignoring .gitignore keeps it out of git
+# without touching tracked files.
+#
+# Usage: convoy-workspace [--init]
+#   --init  also copy destination.md / manifest.md templates if absent (never overwrites)
+set -euo pipefail
+
+common=$(git rev-parse --path-format=absolute --git-common-dir)
+root=$(dirname "$common")
+dir="$root/.convoy"
+mkdir -p "$dir/archive"
+printf '*\n' > "$dir/.gitignore"
+
+if [[ "${1:-}" == "--init" ]]; then
+  tpl="$(cd "$(dirname "${BASH_SOURCE[0]}")/../templates" && pwd)"
+  for f in destination.md manifest.md; do
+    [[ -e "$dir/$f" ]] || cp "$tpl/$f" "$dir/$f"
+  done
+fi
+cd "$dir" && pwd

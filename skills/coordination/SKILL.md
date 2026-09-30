@@ -20,8 +20,9 @@ and the PR. This skill adds only what crosses lanes.
 
 ## The convoy folder
 
-`<main checkout>/agent-workspace/convoy/` unless `destination.md` names another path. It is
-git-ignored scratch, never committed.
+`<main checkout>/.convoy/` — one folder shared by every lane worktree, self-git-ignored.
+Resolve it (and create it if missing) with this skill's `scripts/convoy-workspace`; never
+hand-build the path, since a worktree's top level is not the main checkout.
 
 | File | Holds | Writer |
 |---|---|---|
