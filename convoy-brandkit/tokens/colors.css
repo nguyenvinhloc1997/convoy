@@ -1,0 +1,10 @@
+:root {
+  --convoy-ink: #101214;
+  --convoy-graphite: #15171A;
+  --convoy-paper: #ECE8DF;
+  --convoy-amber: #F2A23A;
+  --convoy-amber-deep: #C2680C;
+  --convoy-mute: #8A8F98;
+  --convoy-font-display: 'Barlow Condensed', sans-serif;
+  --convoy-font-mono: 'JetBrains Mono', monospace;
+}
