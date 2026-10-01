@@ -1,6 +1,9 @@
 {
   "name": "convoy",
-  "owner": { "name": "leo" },
+  "description": "Convoy \u2014 agent swarm coordination for Claude Code.",
+  "owner": {
+    "name": "leo"
+  },
   "plugins": [
     {
       "name": "convoy",
