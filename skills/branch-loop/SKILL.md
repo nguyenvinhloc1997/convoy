@@ -76,7 +76,18 @@ carries standing rules — the per-unit gate, the regression-testing strategy, h
 ratified decision gets handled, what counts as a trackable issue versus an inline fix, and what
 escalates versus what the driver just decides and reports. Confirm all of these as one explicit
 handshake up front, rather than letting the human discover the rules mid-run, one surprise at a
-time. This comes before, and complements, verifying the plan itself below.
+time. This comes before, and complements, verifying the plan itself below. In a convoy, the
+handshake happens with the human **in this lane's session**, not through the lead.
+
+**Several issues → map root causes before planning fixes.** Group the issues by cause, mark each
+cluster as a code smell or a design smell, name the minimal invariant that makes the whole class
+impossible, note its ADR impact, and derive the PR order from the clusters. Fixing issues one by
+one in title order patches symptoms of the same cause N times.
+
+**Measure before you lock a choice that numbers decide.** Performance designs, venue-parity
+behaviour and capacity limits are settled by a bench or a live probe, compared on explicit
+criteria, not argued. When two lanes' designs meet on one seam, co-design it
+(`../coordination/co-design.md`).
 
 **Ground the plan in the code before you trust it — then verify the plan itself.** Two failures
 happen *before* the loop starts, and no per-unit gate catches them:
@@ -102,7 +113,9 @@ skipped.** Do not brief the first implementer until *both* are done and recorded
 exists, **and** a *separate* pass has tried to break the plan and its findings are resolved. Writing
 the plan and then executing it is the failure — the author reading their own plan is not the review.
 The verification is a distinct step with a fresh-eyes reviewer prompted to break the plan (its own
-subagent by default); "the plan looks right" is not a substitute. If the plan changed since it was
+subagent by default); "the plan looks right" is not a substitute. In a convoy, a plan that adds or
+changes structure (a seam, key, table, background driver, module boundary) also goes to the
+quality-control lane, if one runs, as part of this verification. If the plan changed since it was
 verified, it is unverified again. Treat starting unit 1 on an unverified plan as the same class of
 error as shipping on a red PRESERVE test.
 

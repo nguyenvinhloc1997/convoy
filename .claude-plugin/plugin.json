@@ -1,7 +1,7 @@
 {
   "name": "convoy",
-  "description": "Multi-session development: a lead session coordinates parallel lane sessions toward one destination; each lane runs branch-loop on its own branch. Builds on superpowers.",
-  "version": "0.1.1",
+  "description": "Multi-session development: a lead coordinates parallel main lanes, side lanes and a quality-control lane toward one destination; executing lanes run branch-loop on their own branch. Builds on superpowers.",
+  "version": "0.2.0",
   "author": { "name": "leo" },
   "keywords": ["multi-agent", "coordination", "lanes", "execution-loop"]
 }

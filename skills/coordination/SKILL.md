@@ -1,113 +1,175 @@
 ---
 name: coordination
-description: Use when several Claude sessions work in parallel toward one shared goal in the same repo — as the lead session coordinating them, or as a lane session that was given a lane, owned paths, or a manifest. Also use when a lane needs to touch another lane's files, change a shared contract, use a shared dev stack, or report a PR ready to merge.
+description: Use when several Claude sessions work in parallel toward one shared goal in the same repo — as the lead session coordinating them, or as a lane, side-lane, or quality-control session that was given a lane, a brief, or a manifest. Also use when a lane needs to touch a file another lane has open, change a shared contract, use a shared dev stack, or report a PR ready to merge.
 ---
 
 # Convoy Coordination
 
 ## Overview
 
-One **lead** session steers several **lane** sessions toward one **destination**. Lanes do the
-work; the lead keeps them from colliding and brings merges to the human.
+One **lead** session steers several lane sessions toward one **destination**. Lanes do the
+work and the design; the lead keeps them from colliding and brings decisions and merges to the
+human, one at a time.
 
-**Core principle: split by code ownership, never by issue.** A contract (a stream schema, a
-port, a wire DTO) is owned by exactly one lane and changed only by it. Splitting one contract
-across two owners makes one side wait on the other or build against a shape that is about to
-change.
+**Core principle: split by contract ownership; features cut across layers.** A contract (a
+stream layout, a port signature, a wire/REST/SSE shape, an event payload, a key's semantics) is
+owned by exactly one lane and changed only by it. Files are not owned: a lane edits whatever its
+feature needs, in any layer. Directory ownership makes every lane ask permission for four-line
+wiring edits; contract ownership stops the collisions that matter.
 
-**REQUIRED SUB-SKILL for every lane:** `convoy:branch-loop` — it owns planning, TDD, review,
-and the PR. This skill adds only what crosses lanes.
+**REQUIRED SUB-SKILL for every executing lane:** `convoy:branch-loop` — planning, TDD, review,
+the PR. The quality-control lane loads `convoy:quality-control` instead. This skill adds only
+what crosses sessions.
 
 ## The convoy folder
 
-`<main checkout>/.convoy/` — one folder shared by every lane worktree, self-git-ignored.
-Resolve it (and create it if missing) with this skill's `scripts/convoy-workspace`; never
-hand-build the path, since a worktree's top level is not the main checkout.
+`<main checkout>/.convoy/` — one folder shared by every worktree, self-git-ignored. Resolve it
+(and create it if missing) with `scripts/convoy-workspace`; never hand-build the path, since a
+worktree's top level is not the main checkout.
 
 | File | Holds | Writer |
 |---|---|---|
-| `destination.md` | goal, done condition, issue query, scope, human decision items | `convoy:set-destination` only |
-| `manifest.md` | lead's session name; lanes → session names → owned paths → issue order; contracts; open CRs; blockers; shared-resource owners; PR queue | **the lead only** |
+| `destination.md` | goal, done query, out-of-scope, new-issue rule | `convoy:set-destination` only |
+| `manifest.md` | lanes, contracts, decision queue, side-lane queue, shared resources, PR queue, log | **the lead only** |
+| `quality-register.md` | architecture patterns, open design questions, debt by theme | **the quality-control lane only**; carried across destinations |
 | `archive/` | past destinations with their final manifests | `convoy:set-destination` |
 
 No `destination.md` → run `convoy:set-destination` before anything else.
 
 ## Roles
 
-- **Human:** the only merge authority. Decides product questions and every scope change.
-- **Lead:** writes the manifest, routes messages, sets merge order, runs the checkpoint, files
-  new issues. Writes no product code.
-- **Lane:** owns its paths; runs `convoy:branch-loop` end to end; reports to the lead by name
-  (the lead's session name is in `manifest.md`).
+- **Human — designer and decider.** Designs and locks plans *in the lanes*; decides scope, copy,
+  contracts that change behaviour, ADR revisions, and every merge.
+- **Lead — chief of staff, not a relay.** Triages and logs every inbound, verifies claims against
+  code and the forge, adds its own independent review, and presents decisions one topic at a
+  time. Executes only what the human decided. Runs the checkpoint and merges. Never designs for
+  a lane and writes no product code.
+- **Main lane.** Owns contracts and its features end to end; designs in its session with the
+  human; settles peer coordination with other lanes itself.
+- **Side lane.** No contracts, no destination issues of its own. Executes one lead-queued
+  `BRIEF` at a time and never designs. See *Side lanes*.
+- **Quality-control lane.** Advises, never owns product code. Reviews structural plans, sweeps
+  merged code, keeps the architecture docs and the quality register. See `convoy:quality-control`.
 
 ## Messages
 
-Send with `SendMessage` to the session name in the manifest. First line: `<TAG> <lane>: <summary>`.
+`SendMessage` to the session name in the manifest. First line: `<TAG> <lane>: <summary>`; body
+fits one screen.
 
 | Tag | Sender → | Meaning |
 |---|---|---|
-| `CLAIM` / `RELEASE` | lane → lead | take / return a shared resource (dev stack, shared DB, a live box) |
-| `CONTRACT` | owner lane → lead | about to change a seam; body = the contract note. Lead relays to consumers and waits for their ack |
-| `CR` | lane → lead | change request for another lane's path; lead routes it, the owner implements |
+| `ACK` | any → sender | received and verified against own code (for a `CONTRACT`: consumer checked it) |
+| `CONTRACT` | owner → lead | about to change a seam: before/after shape, null semantics, consumers (incl. other repos). Lead relays; each consumer verifies against its own code, then `ACK`s or objects |
+| `CR` | lane → owner (cc lead) | change request for a contract another lane owns; the owner implements, or accepts and delegates the hunk to the requester and reviews it |
+| `TOUCH` | lane → lanes with open work on the file (cc lead) | FYI: about to edit this file; reply only on conflict |
+| `CLAIM` / `RELEASE` | lane → lane (cc lead) | take / hand over a shared resource; release restores the state you found |
+| `AGREED` | lane → lead | outcome of a peer negotiation, for the manifest |
+| `ESCALATE` | lane → lead | peers could not agree; becomes a human decision |
 | `BLOCKED` | lane → lead | what is needed, from whom |
-| `NEW-ISSUE` | lane → lead | found work (incl. in paths no lane owns); lead files it per `destination.md`'s rule and places it in a lane |
-| `PROPOSE` | lane → lead | a scope question (defer an issue, re-split, re-order); lead turns it into a `DECISION`. Keep working the issue meanwhile |
-| `PR-READY` | lane → lead | branch-loop finished; body = PR number, issues closed, paths touched, contracts changed |
-| `CHECKPOINT-FAIL` | lead → lane | which checkpoint item failed and the fix path |
-| `REBASE` | lead → lanes | a PR merged; rebase onto the base branch |
-| `DECISION` | lead → human | a question only the human can answer |
-
-Lanes may message each other directly about a contract; the sender then reports the outcome
-to the lead so the manifest records it.
+| `PROPOSE` | lane → lead | scope change (defer, re-split, re-order) or a side-lane brief; keep working meanwhile |
+| `ATTENTION` | lane → lead | a design item needs the human **in this lane**; one-line reason |
+| `BRIEF` | lead → side lane | one work unit: issues, files, acceptance, reviewer lane |
+| `PR-READY` | lane → lead | branch-loop done: PR, head SHA, issues closed, paths, contracts, gate, **`Filed:`** |
+| `FLAG` / `DESIGN-Q` / `CHALLENGE` | quality-control → lead / lead / lane | see `convoy:quality-control` |
+| `CHECKPOINT-FAIL` | lead → lane | which item failed and the fix path |
+| `REBASE` | lead → lanes | merged: new base SHA, files it touched, new migration head |
+| `DECISION` | lead → human | a question only the human answers |
 
 ## Rules
 
-1. **Edit only your owned paths.** Anything else — including paths no lane owns — is a `CR`
-   (or `NEW-ISSUE`), however small, however urgent, even when the owner looks idle. Deadline
-   pressure is a `BLOCKED`, never a direct edit. The owner accepts or refuses a `CR`; the lead records it.
-2. **Contract first.** Only the owner changes a seam, and announces it with `CONTRACT` before
-   the change itself or any dependent code merges. A non-owner needing a seam change sends a `CR`.
-3. **One owner per shared resource**, recorded in the manifest. `CLAIM` before use,
-   `RELEASE` after, restored to the state you found it (flatten load, reseed data). A claim on a
-   held resource is queued; the lead asks the holder to `RELEASE`. No answer → `DECISION` to the human.
-4. **Never merge without the human's explicit approval naming that PR.** Delegation ("keep
-   things moving", "you decide", "approve all"), CI green and a clean checkpoint are not
-   approval. Exception: the human tells a lane directly to merge a named PR; the lane quotes
-   that message in its report, and the lead records it.
-5. **No deferral.** An issue leaves the destination only with the human's approval, per
-   issue. A fix that uncovers a larger refactor: fix the correctness bug, `NEW-ISSUE` the refactor.
-6. **The manifest has one writer.** Lanes never edit it; they message.
+1. **Edit what your feature needs.** Any file, any layer. If another lane has an open branch on
+   that file, send `TOUCH` first and hold your hunks there until it replies "no conflict" or
+   you agree an order. A seam another lane or repo consumes is never edited silently: `CR` its owner.
+2. **Contract first.** Only the owner changes a seam, announced with `CONTRACT` before the
+   change or any dependent code merges. Consumers verify before they `ACK`; an objection is
+   valuable, not friction.
+3. **Lanes settle coordination among themselves.** Resource handovers, claim order, `TOUCH`
+   overlaps, two-lane rebase order: negotiated peer to peer, outcome reported with `AGREED`.
+   The lead records it and does not mediate. Deadlock → `ESCALATE`.
+4. **Design stays in the lane.** Plans, ADR changes, invariants and design options are settled
+   between the human and that lane, in that lane's session. The lane sends `ATTENTION`; the
+   lead only tells the human where to go. Two lanes on one seam co-design it (`co-design.md`).
+5. **Never merge without the human's explicit approval naming that PR.** "Keep things moving",
+   "approve all", CI green and a clean checkpoint are not approval. Exception: the human tells a
+   lane directly to merge a named PR; the lane quotes it, the lead verifies on the forge.
+6. **No deferral.** An issue leaves the destination only with the human's approval, per issue.
+   A leak or unbounded growth is never deferred. A fix that uncovers a refactor: fix the
+   correctness bug, file the refactor.
+7. **Lanes file their own issues** — only for work **no plan owns**. Work a locked ADR, plan or
+   PR decomposition already schedules is tracked there, never as an issue. Follow the
+   destination's new-issue rule; report every filed issue in the next `PR-READY` under `Filed:`.
+8. **Every runtime file has one writer** (table above). Others message the writer.
+9. **Never kill by pattern** (`pkill -f`, `killall`): parallel lanes run identical command lines.
+   Kill by PID you started, or stop the task through its own tool.
+
+## Side lanes
+
+A side lane runs pre-designed work so main lanes stay on their core path.
+
+- A main lane `PROPOSE`s a brief to the lead; the lead gets the human's OK and enqueues it in
+  the manifest's side-lane queue. Main lanes never brief a side lane directly.
+- The lead sends one `BRIEF` at a time (template: `templates/brief.md`). The side lane runs
+  `convoy:branch-loop` (the light loop for small units) to `PR-READY`, naming the briefing lane
+  as reviewer.
+- The briefing lane keeps the design and contract ownership. A question that turns into design
+  goes back to it, never decided in the side lane.
 
 ## Checkpoint (lead, on `PR-READY`)
 
-The lane's own review is done; the lead does not re-review the code. It checks fit:
+The lane's own review is done; the lead checks fit, read-only, without asking:
 
-1. Every changed path is owned by the lane or covered by an approved `CR`.
-2. Every seam change has a `CONTRACT` note acknowledged by its consumers.
-3. The branch is on the current base with no conflict against PRs queued ahead of it.
-4. It is next in the merge order, or the order is changed on purpose and recorded.
-5. It meets the repo's PR conventions (changelog fragments, issue links) from its `CLAUDE.md`.
+1. **Head pinned.** Record the PR's head SHA. Re-read it immediately before merging; if it
+   moved, diff the delta and re-run the affected items.
+2. **On the current base,** clean against the base and against PRs queued ahead of it. A PR
+   behind a base that moved is an untested combination: send it back to rebase or merge the base in.
+3. **Contracts:** every seam change has a `CONTRACT` acknowledged by every consumer.
+4. **`TOUCH`es answered;** no unresolved overlap with another lane's open branch.
+5. **Migrations:** one head, if the repo uses them.
+6. **Deletions:** removed symbols have zero remaining callers (grep).
+7. **Conventions** from the repo's `CLAUDE.md`: changelog fragment, "closes #N", issue fields.
+8. **`Filed:` present;** each issue follows the new-issue rule and is not already owned by a plan.
+9. **Quality-control `FLAG`s** on this PR (a settled ADR or invariant broken):
+   - first judge whether the ADR is still right;
+   - right → `CHECKPOINT-FAIL`, the lane fixes it in this PR;
+   - stale → no forced fix; the PR waits while the human decides on revising the ADR;
+   - unclear → the QC lane and the owning lane argue it, then bring one joint position.
 
-Pass → a short `DECISION` to the human with the verdict. Fail → `CHECKPOINT-FAIL` to the lane
-(e.g. revert the foreign-path change, `CR` it to the owner); nothing reaches the human.
-Approved → **the lead merges** per the repo's convention → `REBASE` to the other lanes → the
-lane closes its issues, each with a fix comment linking the PR.
+Pass → queue a `DECISION` (merge) under the PR's topic. Fail → `CHECKPOINT-FAIL`; nothing
+reaches the human. **Lockstep** PRs across repos (backend + frontend) are one decision, merged
+back to back. After a merge: `REBASE` to every lane; retarget PRs stacked on the merged branch;
+confirm each closed issue actually closed (close with a fix comment if not); re-run the done
+query; log it. Deploy only when the human says so.
 
 ## Lead loop
 
-- On each message: update the manifest first, then route.
-- Wait with `SendMessage(notify_when_idle: true)`; never poll `ListAgents` or send "are you done?".
-- Re-run the destination's issue query at each merge; report progress against the done condition.
-- A lane renamed or replaced → update the manifest before the next message.
+- **Log first.** Every inbound goes into the manifest before anything else.
+- **No automatic decisions.** Anything that is not mechanical logging or a read-only check —
+  routing a `CR`, a ruling on ownership, a placement, a scope change, a process rule — goes into
+  the decision queue and waits for the human. Reply to the lane only with what the human decided.
+- **One focus topic at a time.** Every item belongs to a topic. Reply only on the current
+  topic; park the rest under their topics with at most a one-line footer. Never interrupt,
+  even for a lane-blocking item — only imminent harm (live data loss, money) breaks focus. When
+  a topic closes, propose the next and let the human pick.
+- **Present each decision as:** what the lane said in plain words → what the lead verified
+  (`file:line`, command, SHA) → recommendation first → options (a)/(b)/(c) → one question.
+- **Restate the human's exact decision before relaying.** Corrections arrive mid-flight;
+  re-read the latest message, and ask rather than send a guess.
+- **Verify before recommending:** read the code on the remote base, not a stale checkout;
+  check an issue is still open; check list commands' default limits (counts lie at the cap).
+- After every scripted manifest edit, re-check the table's column counts.
+- Wait with `SendMessage(notify_when_idle: true)`; never poll. A lane renamed or replaced →
+  update the manifest before the next message.
 
 ## Red flags — stop
 
 | Thought | Reality |
 |---|---|
-| "It's a two-line fix in their file" | `CR`. The owner may be mid-change in that file. |
-| "The consumer will adapt when they rebase" | Announce the `CONTRACT` first; a silent seam change is the collision this skill exists to stop. |
+| "I'll route this CR, it's obvious" | Decision queue. The human decides, then you route. |
+| "This needs a design call — let me sketch options here" | `ATTENTION`: the design happens in the lane. |
+| "It's urgent, I'll raise it now" | Park it under its topic. Only imminent harm interrupts. |
+| "The consumer will adapt when they rebase" | `CONTRACT` first; a silent seam change is the collision this skill exists to stop. |
 | "The PR is green and the human said go ahead earlier" | Approval is per PR. Ask. |
-| "This issue is really next phase" | `PROPOSE` it and keep working; only the human moves an issue out. |
-| "The owner is idle and it's due today" | `BLOCKED`. Idle is not "not mid-change". |
-| "I'll just note it in the manifest myself" (lane) | Message the lead; one writer. |
-| "Nobody is on dev right now" | Check the manifest's owner; `CLAIM` first. |
+| "Checkpoint passed an hour ago, merge" | Re-read the head SHA. A moved head is an unchecked PR. |
+| "File an issue for it" (about planned work) | Track it in the plan that owns it. Issues are for unowned work. |
+| "The ADR says X, so the PR is wrong" | Maybe the ADR is stale. Judge that first. |
+| "Nobody is on dev right now" | Check the manifest; `CLAIM` from the holder. |

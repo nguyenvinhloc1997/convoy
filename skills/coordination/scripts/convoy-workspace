@@ -6,7 +6,8 @@
 # without touching tracked files.
 #
 # Usage: convoy-workspace [--init]
-#   --init  also copy destination.md / manifest.md templates if absent (never overwrites)
+#   --init  also copy destination.md / manifest.md / quality-register.md templates if absent
+#           (never overwrites; quality-register.md outlives destinations)
 set -euo pipefail
 
 common=$(git rev-parse --path-format=absolute --git-common-dir)
@@ -17,7 +18,7 @@ printf '*\n' > "$dir/.gitignore"
 
 if [[ "${1:-}" == "--init" ]]; then
   tpl="$(cd "$(dirname "${BASH_SOURCE[0]}")/../templates" && pwd)"
-  for f in destination.md manifest.md; do
+  for f in destination.md manifest.md quality-register.md; do
     [[ -e "$dir/$f" ]] || cp "$tpl/$f" "$dir/$f"
   done
 fi
