@@ -18,7 +18,7 @@ printf '*\n' > "$dir/.gitignore"
 
 if [[ "${1:-}" == "--init" ]]; then
   tpl="$(cd "$(dirname "${BASH_SOURCE[0]}")/../templates" && pwd)"
-  for f in destination.md manifest.md quality-register.md; do
+  for f in destination.md manifest.md board.md log.md quality-register.md; do
     [[ -e "$dir/$f" ]] || cp "$tpl/$f" "$dir/$f"
   done
 fi

@@ -9,7 +9,7 @@
 <p align="center"><b>Agent swarm coordination for Claude Code.</b><br>
 One lead session, several lane sessions, one destination — moving in formation.</p>
 
-<p align="center"><code>BETA · v0.2</code></p>
+<p align="center"><code>BETA · v0.3</code></p>
 
 ---
 
@@ -37,6 +37,7 @@ flowchart TB
     L <--> M1
     L <--> M2
     L -- briefs --> S
+    M1 -- sublets --> S
     Q -. advises .-> L
     Q -. challenges .-> M1
     M1 <-. peer coordination .-> M2
@@ -46,8 +47,8 @@ flowchart TB
 |---|---|
 | **Lead** | Logs every message, verifies claims against the code, queues decisions for you one topic at a time, runs a fit checkpoint on each PR, merges only with your explicit approval |
 | **Main lane** | Owns contracts (wire shapes, ports, stream layouts) and its features end to end; designs with you in its own session |
-| **Side lane** | Executes pre-designed briefs one at a time, so main lanes stay on their core path |
-| **Quality-control lane** | Reviews structural plans before code, sweeps merged code, keeps the architecture docs; holds settled decisions, turns unsettled patterns into design questions |
+| **Side lane** | Runs one task at a time — a task a main lane sublets from its locked plan, or a READY board item it pulls — and never designs |
+| **Quality-control lane** | Owns cross-cutting architecture design; reviews structural plans before code, sweeps merged code, watches code growth, keeps the architecture docs; holds settled decisions, turns unsettled patterns into design questions |
 
 **Principles**
 
@@ -56,13 +57,15 @@ flowchart TB
 - **No automatic decisions.** Anything beyond mechanical logging waits in a queue for you.
 - **Design stays in the lane.** The lead points you to the lane that needs you; it never designs for it.
 - **Hold what is settled, question what is not.** Locked decisions are enforced; open ones become questions, never premature rules.
+- **No lane sits idle.** All work lives on one board; idle lanes pull READY items, and busy main lanes sublet planned tasks to side lanes while keeping the design.
+- **Retire before you add.** Every new mechanism names what it supersedes; every PR reports `Retired:`, `Size:` and `Tests removed:`.
 
 ## Skills
 
 | Skill | Use |
 |---|---|
 | `convoy:set-destination` | Set, update or replace the goal and its done query; cut the work into lanes |
-| `convoy:coordination` | Lead, main-lane and side-lane rules: message tags, contracts, decision queue, checkpoint |
+| `convoy:coordination` | Lead, main-lane and side-lane rules: message tags, contracts, the board and pull rule, subletting, checkpoint |
 | `convoy:quality-control` | The quality-control lane: plan reviews, sweeps, the quality register |
 | `convoy:branch-loop` | The per-branch execution loop each executing lane runs |
 
@@ -86,8 +89,10 @@ claude plugin install convoy@convoy
    approve merges.
 
 Per-project state lives in `<main checkout>/.convoy/` — git-ignored and shared by every lane's
-worktree: `destination.md`, `manifest.md` (lead only), `quality-register.md` (quality-control
-only, carried across destinations) and `archive/`.
+worktree, one job per file: `destination.md` (goal, done query), `manifest.md` (structure:
+lanes, contracts, resources), `board.md` (all work and its state), `log.md` (append-only events),
+`quality-register.md` (quality-control only, carried across destinations) and `archive/`. The
+lead writes the manifest, board and log; lanes change them by message.
 
 ## Example lane setup
 
@@ -100,7 +105,7 @@ repo. Destination: *"ship every open issue on the `Alpha` milestone"* — done q
 | **Lead** | lead | `Coordinator` | the manifest, merge order | decisions, checkpoints, merges |
 | **L1** | main | `L1-Feed` | the market-data stream layout, feed-gap ports | ingest bugs, feed recovery |
 | **L2** | main | `L2-Engine` | engine order/ack types, the event log | matching, fills, engine performance |
-| **L3** | side | `L3-Side` | — | briefs: docs fixes, lint, small isolated bugs |
+| **L3** | side | `L3-Side` | — | sublet tasks from main lanes; READY board items |
 | **L4** | main | `L4-API` | REST/SSE response shapes, order routes | API endpoints, error codes, user-facing copy |
 | **L5** | main | `L5-Frontend` | — (consumes L4's shapes) | frontend repo, one worktree per PR |
 | **QC** | quality | `QC-Architecture` | the quality register | plan reviews, merged-code sweeps |

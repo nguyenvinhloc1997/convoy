@@ -29,7 +29,8 @@ The destination is **reached** only when its done query returns nothing.
    - list open PRs, `CR`s and `CLAIM`s and resolve each (merge, hand over, or release);
    - list every item the old done query still returns; get a human decision on each —
      carry over, re-scope, or close. Nothing carries over silently.
-   Then move `destination.md` + `manifest.md` to `archive/<YYYY-MM-DD>-<slug>/`.
+   Then move `destination.md`, `manifest.md`, `board.md` and `log.md` to
+   `archive/<YYYY-MM-DD>-<slug>/`.
    **`quality-register.md` stays** — architecture debt outlives a milestone.
 2. **Shape the destination with the human**, one question at a time:
    - the goal in one sentence;
@@ -48,15 +49,17 @@ The destination is **reached** only when its done query returns nothing.
    - two lanes that would change the same contract run **sequentially in one session**;
    - list each cross-lane seam as a contract with its owner and consumers;
    - order each lane: unblockers of other lanes first, then highest risk;
-   - optionally add **side lanes** (no contracts, no issues of their own — fed briefs by the
-     lead) and one **quality-control lane** (`convoy:quality-control`).
+   - optionally add **side lanes** (no contracts; they pull READY board items and take sublet
+     briefs from main lanes) and one **quality-control lane** (`convoy:quality-control`).
 5. **Show the lane table** (lane → kind → session name → owned contracts → ordered issues →
    cross-lane seams). Iterate until approved.
-6. **Write** `destination.md` and `manifest.md`: run `../coordination/scripts/convoy-workspace --init`
-   (relative to this skill's base directory) to create `.convoy/` with the templates, then fill them.
+6. **Write** `destination.md`, `manifest.md` (structure) and `board.md` (every pulled item with
+   its state; propose the first READY batch to the human): run
+   `../coordination/scripts/convoy-workspace --init` (relative to this skill's base directory) to
+   create `.convoy/` with the templates, then fill them. `log.md` starts with the kickoff.
 7. **Draft one kickoff message per lane** and send after the human confirms. A kickoff contains:
    lane name and kind, owned contracts, ordered issues, known seams, the lead's session name, the
-   manifest path, and the skills to load — main and side lanes: `convoy:coordination` +
+   `.convoy/` path, and the skills to load — main and side lanes: `convoy:coordination` +
    `convoy:branch-loop`; the QC lane: `convoy:coordination` + `convoy:quality-control`.
 
 `update` runs steps 3–7 on the delta only, then sends each affected lane its changes.
@@ -67,6 +70,6 @@ The destination is **reached** only when its done query returns nothing.
 - Lanes cut by directory → every lane asks permission for small wiring edits.
 - A done condition that is not a query → the convoy cannot tell it has arrived.
 - Replacing a destination and dropping the old leftovers without a human decision each.
-- Archiving the quality register with the manifest — it is meant to carry forward.
+- Archiving the quality register with the manifest and board — it is meant to carry forward.
 - Running more lanes than the human's session budget; a lane waiting for capacity is worse
   than a sequenced lane.

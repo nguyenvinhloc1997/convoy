@@ -1,7 +1,7 @@
 {
   "name": "convoy",
   "description": "(Beta) Multi-session development: a lead coordinates parallel main lanes, side lanes and a quality-control lane toward one destination; executing lanes run branch-loop on their own branch. Builds on superpowers.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": {
     "name": "leo"
   },

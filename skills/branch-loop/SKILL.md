@@ -60,7 +60,7 @@ ground the plan in the code · verify the plan with fresh eyes    (before the lo
 decompose by dependency
   └─ per unit:
        brief implementer (the plan is fallible)
-         → adversarial review on the strong model
+         → simplification pass, then adversarial review on the strong model
          → fix every CONFIRMED finding
          → live verification if observable   (never on a tree under edit)
          → drift reconciliation
@@ -105,8 +105,19 @@ happen *before* the loop starts, and no per-unit gate catches them:
   mis-scope a deferral? Would any task, followed literally, red the suite or introduce the divergence
   above? A wrong plan fixed before the first line of code is far cheaper than one found unit-by-unit.
 
-Record the grounding (what exists · what is new · what each unit reconciles) so the implementer
-briefs inherit it and the end-of-run coherence pass can check the result against it.
+**Name what each new mechanism supersedes (R1).** For every new sweep or worker, writing
+fallback, index, cache, flag, retry or repair loop, or second check of an existing rule, the plan
+names the existing mechanism for the same state or property and either **retires it in this
+branch** or states `distinct failure mode: <crash | race | stale feed | …>`. A mechanism that
+writes or repairs state another component owns needs that owner's sign-off on the plan (the
+quality-control lane's, if cross-cutting). A second mechanism beside the first is the most common
+way a codebase bloats. Exceptions: a money-path safety layer covering a distinct, named failure
+stays; a fail-closed reject or halt is never a "second mechanism"; an urgent fix may land
+additive with a retire issue the human approves.
+
+Record the grounding (what exists · what is new · what each unit reconciles · what is retired)
+so the implementer briefs inherit it and the end-of-run coherence pass can check the result
+against it.
 
 **Both are hard setup gates, not suggestions — and the plan verification is the one most often
 skipped.** Do not brief the first implementer until *both* are done and recorded: the grounding map
@@ -141,7 +152,7 @@ say-so. A step may be skipped when the rule below says so — never silently.
 | 1 | Full suite, fresh | Run completely, count failures. A pre-change baseline is not evidence |
 | 2 | Lint / format / types / architecture | Run each and read its output; these are easy to declare green while red |
 | 3 | Schema / migrations | Single head, applied, reversible if the project requires it |
-| 4 | Adversarial review | See below |
+| 4 | Two-sided review | Simplify, then break — see below |
 | 5 | Live verification + drift reconciliation | See below |
 
 ### Regression testing strategy
@@ -162,6 +173,10 @@ delete the guarantee because its mechanism moved. First confirm a guarantee actu
 mechanism, though: a test that only pins the mechanism itself, with no guarantee behind it, is a
 clean replace.
 
+**Tests follow guarantees (R4).** Every removed test is labelled `mechanism-only: <deleted
+symbol>` or `guarantee moved: <surviving test>`; a PRESERVE or invariant test is never deleted,
+only re-pointed. The mapping goes in the PR report under `Tests removed:`.
+
 **On any red test, classify it against the ledger before touching it.** Never set the expected
 value to the observed value without that classification — that turns a real regression into a
 passing test.
@@ -171,7 +186,19 @@ its own.** On a large or risky rework, the PRESERVE tests are the evidence that 
 silently move behavior it was never meant to touch. A PRESERVE test going red is the single most
 important signal in the run, and it is a code defect every time, never a test to update.
 
-### 4. Adversarial review — on the strong model
+### 4. Two-sided review — simplify, then break (R2)
+
+**First, a simplification pass:** a read-only simplicity review of the diff (e.g.
+`ponytail:ponytail-review`, or a reviewer prompted to find what can be removed). Apply the
+accepted edits. **Then the adversarial review** below runs on the simplified code, so every
+edit is reviewed.
+
+The adversarial reviewer also reports **`Removable:`** — code the branch adds or touches that
+could go. A removal is CONFIRMED only if it names the surviving mechanism and the test that
+already guarantees the property ("none — searched `<paths>`" is a valid answer and means keep
+it). The reviewer tags each fix `source` (the shared rule changed), `delete`, or `guard:
+<reason>`; three or more `guard` fixes in one module on one branch mean a root cause is being
+patched site by site — stop and run the root-cause cluster map.
 
 A **separate** reviewer, prompted to **break** the code, not appreciate it:
 
@@ -239,6 +266,17 @@ better home:
 Never close an issue citing a fix you have not verified exists — including a test you have not
 seen.
 
+**Dead code in touched files (R5).** In a behaviour-changing branch, code in a file you touch
+that is verified dead — zero callers repo-wide **and** not a Protocol or duck-typed
+implementation, route, script, entrypoint, migration or phase-gated seam — is deleted in **its
+own commit** and listed under `Retired:`, with the grep and wiring check cited. A
+behaviour-preserving refactor keeps deletions out: flag them and remove them separately, never
+folded into a pure move.
+
+**Seam first, then fan out.** When several units or lanes depend on one seam this branch
+creates, finish and merge the seam on its own before building on it. Work stacked on an
+unmerged seam builds on a tagged commit and goes at most one level deep.
+
 **Agent isolation.** Concurrent agents get isolated worktrees; file-ownership instructions in
 the brief are not sufficient. Sequential agents may share the tree. While any agent is active,
 commit with **pathspec** (`git commit -- <paths>`), never `add -A` plus a bare commit.
@@ -247,6 +285,12 @@ commit with **pathspec** (`git commit -- <paths>`), never `add -A` plus a bare c
 branch gets **exactly one PR**, and **the human merges it**. Never squash stacked branches.
 **Running as a convoy lane** (a `manifest.md` names you): opening the PR ends your run — send
 `PR-READY` to the lead per `convoy:coordination`; the human approves there and the lead merges.
+The report carries:
+- `Retired: <symbol> — superseded by <X>` per retired mechanism, or `none — net-new | distinct
+  failure: <…>` (R1, R5);
+- `Size: prod +A/−B, tests +C/−D; new mechanisms: [...]` from `git diff --numstat
+  <base>...HEAD`, never hand-typed (R3);
+- `Tests removed:` the R4 mapping, or `none`.
 
 **Autonomy.** Proceed unattended; report at **unit boundaries**. Stop only for a user-facing
 rule change, a durable schema or contract change, or something contradicting a ratified
@@ -277,6 +321,8 @@ infrastructure defect disables enforcement", invisible to every per-unit review.
 - Reporting a unit "done" without the five gate steps in the commit.
 - Skipping a gate step **silently** — the skip is allowed, hiding it is not.
 - Filing an issue for a defect that never left your own branch.
+- Adding a sweep, fallback or second check without naming the mechanism it supersedes.
+- Deleting a test without saying which guarantee moved where.
 - Briefing the first implementer on a plan no separate pass has tried to break — or one that changed since it was verified.
 - Running this loop with its phase companion (`writing-plans`, `subagent-driven-development`, …) not loaded.
 

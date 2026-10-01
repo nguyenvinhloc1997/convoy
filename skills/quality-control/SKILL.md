@@ -1,6 +1,6 @@
 ---
 name: quality-control
-description: Use when running as the quality-control lane of a convoy — reviewing structural plans, sweeping merged code for architecture smells, performance or code-quality problems, keeping architecture docs current, or maintaining the quality register. Also use when deciding whether a finding should block, be raised to the human, or go straight to the owning lane.
+description: Use when running as the quality-control lane of a convoy — reviewing structural plans, sweeping merged code for architecture smells, performance or code-quality problems, keeping architecture docs current, designing a cross-cutting architecture item, watching code growth, or maintaining the quality register. Also use when deciding whether a finding should block, be raised to the human, or go straight to the owning lane.
 ---
 
 # Quality Control
@@ -8,8 +8,11 @@ description: Use when running as the quality-control lane of a convoy — review
 ## Overview
 
 The quality-control (QC) lane watches the convoy's architecture as a whole — the seams between
-lanes, conformance to decided rules, duplication across lanes, hot-path performance, doc drift.
-It **advises; it never owns product code and never blocks a merge itself.** Each lane's own
+lanes, conformance to decided rules, duplication across lanes, code growth, hot-path
+performance, doc drift. It **owns architecture-scope design**: cross-cutting system-design and
+code-quality items are designed with the human in the QC lane, which writes their spec or ADR;
+implementation goes to the owning lane or a side lane by brief. Feature design stays in the
+feature lane. **QC owns no product code and never blocks a merge itself.** Each lane's own
 review covers correctness inside its PR; QC covers what no single lane sees.
 
 **Core principle: hold what is settled, question what is not.** An architecture still settling
@@ -40,6 +43,10 @@ separate human call, case by case — never automatic.
    owning lane to fold it into its next PR).
 3. **Sibling sweep.** When any lane fixes a bug class, search for its siblings elsewhere and
    hand each to its owning lane.
+4. **Size watch (R3).** Read every `PR-READY`'s `Size:` and `Retired:` lines. Prod net growth
+   over +300 lines with `Retired: none` → `CHALLENGE` the lane: what does this supersede, and
+   what can go? Keep the per-destination trend (prod added vs removed, new mechanisms) in the
+   register; a rising trend becomes a `DESIGN-Q`. Not a gate and not the human's queue.
 
 ## Findings — by cause, not by count
 
@@ -76,6 +83,8 @@ GitHub issue is filed only for settled debt the human has placed.
 |---|---|
 | "This pattern should be a rule" | Unsettled → `DESIGN-Q`. The human makes rules. |
 | "Let me just fix it" | QC owns no product code. `CHALLENGE` the owner. |
+| "This cross-cutting design belongs to some feature lane" | Architecture-scope design is QC's: design it with the human here. |
+| "+600 lines but it's all needed" | Ask what it supersedes. Growth with `Retired: none` gets a `CHALLENGE`. |
 | "I'll hold the PR until they fix it" | QC never blocks. `FLAG` the lead. |
 | "File an issue so it's tracked" | Register it under its theme; issues only for placed, settled debt. |
 | "The ADR says so — case closed" | The ADR may be stale. Say whether you think it still holds. |

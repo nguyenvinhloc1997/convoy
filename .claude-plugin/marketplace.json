@@ -9,7 +9,7 @@
       "name": "convoy",
       "source": "./",
       "description": "Lead + lanes multi-session development, quality control, destination setting, and the branch execution loop.",
-      "version": "0.2.0"
+      "version": "0.3.0"
     }
   ]
 }
