@@ -9,7 +9,14 @@
 <p align="center"><b>Agent swarm coordination for Claude Code.</b><br>
 One lead session, several lane sessions, one destination — moving in formation.</p>
 
+<p align="center"><code>BETA · v0.2</code></p>
+
 ---
+
+> [!WARNING]
+> **Convoy is in beta.** The skills, message tags and `.convoy/` file layout are still changing
+> between versions, and it has been run on one real project so far. Expect rough edges, and pin a
+> version if you depend on its current behaviour.
 
 Convoy is a Claude Code plugin for running several Claude sessions in parallel on one repository
 without them colliding. A **lead** session talks to you, splits the work into **lanes**, reviews

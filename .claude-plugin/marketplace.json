@@ -1,6 +1,6 @@
 {
   "name": "convoy",
-  "description": "Convoy \u2014 agent swarm coordination for Claude Code.",
+  "description": "Convoy (beta) \u2014 agent swarm coordination for Claude Code.",
   "owner": {
     "name": "leo"
   },
