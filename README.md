@@ -89,6 +89,46 @@ Per-project state lives in `<main checkout>/.convoy/` — git-ignored and shared
 worktree: `destination.md`, `manifest.md` (lead only), `quality-register.md` (quality-control
 only, carried across destinations) and `archive/`.
 
+## Example lane setup
+
+A trading app with a market-data ingest, an order engine, an HTTP API and a separate frontend
+repo. Destination: *"ship every open issue on the `Alpha` milestone"* — done query
+`gh issue list --milestone Alpha --state open --limit 200`.
+
+| Lane | Kind | Session | Owns (contracts) | Works on |
+|---|---|---|---|---|
+| **Lead** | lead | `Coordinator` | the manifest, merge order | decisions, checkpoints, merges |
+| **L1** | main | `L1-Feed` | the market-data stream layout, feed-gap ports | ingest bugs, feed recovery |
+| **L2** | main | `L2-Engine` | engine order/ack types, the event log | matching, fills, engine performance |
+| **L3** | side | `L3-Side` | — | briefs: docs fixes, lint, small isolated bugs |
+| **L4** | main | `L4-API` | REST/SSE response shapes, order routes | API endpoints, error codes, user-facing copy |
+| **L5** | main | `L5-Frontend` | — (consumes L4's shapes) | frontend repo, one worktree per PR |
+| **QC** | quality | `QC-Architecture` | the quality register | plan reviews, merged-code sweeps |
+
+A typical slice of traffic:
+
+```text
+L4 → Lead   CONTRACT L4: POST /orders returns 200 {results:[…]} for per-item rejects (was 4xx)
+Lead → L5   relays it; L5 checks its own call sites, replies ACK
+L4 → L1,L2  TOUCH L4: editing cache/keys.py (new per-account order index) — reply on conflict
+L2 → L4     no conflict; condition: index must be rebuilt on cold restore
+QC → L4     CHALLENGE QC: index has no retention rule — terminal orders grow unbounded
+L4 → Lead   PR-READY L4: #737 @6f611a6f · closes #697 #711 · Filed: #735, #736
+Lead → You  #737 + frontend #258 pass the checkpoint (lockstep). Merge?
+You → Lead  yes
+Lead → all  REBASE: staging is now b4caca3f
+```
+
+A kickoff the lead drafts for one lane:
+
+```text
+Lane L1-Feed (main). Lead: Coordinator. Manifest: <repo>/.convoy/manifest.md
+Owns: market-data stream layout; feed-gap ports.
+Issues, in order: #607 → #608 → #611 → #613
+Known seams: the stream entry layout is consumed by L2 (send CONTRACT before changing it).
+Load convoy:coordination and convoy:branch-loop.
+```
+
 ## Brand
 
 Logos, icon, favicon, social card, color tokens and fonts are in
