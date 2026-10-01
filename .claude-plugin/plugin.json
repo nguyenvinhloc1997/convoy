@@ -12,5 +12,6 @@
     "execution-loop"
   ],
   "homepage": "https://github.com/nguyenvinhloc1997/convoy",
-  "repository": "https://github.com/nguyenvinhloc1997/convoy"
+  "repository": "https://github.com/nguyenvinhloc1997/convoy",
+  "license": "MIT"
 }

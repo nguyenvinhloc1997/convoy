@@ -93,3 +93,8 @@ Logos, icon, favicon, social card, color tokens and fonts are in
 After editing a skill: bump `version` in `.claude-plugin/plugin.json` and
 `.claude-plugin/marketplace.json`, commit and push, then
 `claude plugin marketplace update convoy && claude plugin update convoy@convoy` and restart sessions.
+
+## License
+
+[MIT](LICENSE). The fonts in `convoy-brandkit/fonts/` are under the SIL Open Font License
+([details](convoy-brandkit/fonts/LICENSE.txt)).
