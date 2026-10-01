@@ -2,6 +2,15 @@
   "name": "convoy",
   "description": "Multi-session development: a lead coordinates parallel main lanes, side lanes and a quality-control lane toward one destination; executing lanes run branch-loop on their own branch. Builds on superpowers.",
   "version": "0.2.0",
-  "author": { "name": "leo" },
-  "keywords": ["multi-agent", "coordination", "lanes", "execution-loop"]
+  "author": {
+    "name": "leo"
+  },
+  "keywords": [
+    "multi-agent",
+    "coordination",
+    "lanes",
+    "execution-loop"
+  ],
+  "homepage": "https://github.com/nguyenvinhloc1997/convoy",
+  "repository": "https://github.com/nguyenvinhloc1997/convoy"
 }
